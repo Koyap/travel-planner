@@ -53,7 +53,7 @@ export default function Timeline({
     ...trip.stays.map(s => s.date),
     ...trip.activities.map(a => a.date),
   ])
-  const extraDates = [...allItemDates].filter(d => !dates.includes(d)).sort()
+  const extraDates = Array.from(allItemDates).filter(d => !dates.includes(d)).sort()
 
   const allDates = [...dates, ...extraDates]
 
