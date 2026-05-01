@@ -3,7 +3,7 @@ type Size = 'sm' | 'md' | 'lg'
 
 type Props = {
   children: React.ReactNode
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   type?: 'button' | 'submit' | 'reset'
   variant?: Variant
   size?: Size
