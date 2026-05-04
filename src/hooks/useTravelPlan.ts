@@ -2,28 +2,50 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { TravelPlan, Trip, Transport, Stay, Activity } from '../types'
-import { loadTravelPlan, saveTravelPlan } from '../utils/storage'
+import { loadPlanFromFirestore, savePlanToFirestore } from '../utils/firestoreStorage'
+import { loadTravelPlan } from '../utils/storage'
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
-export function useTravelPlan() {
+export function useTravelPlan(planId: string | null) {
   const [plan, setPlan] = useState<TravelPlan>({ trips: [] })
   const [loaded, setLoaded] = useState(false)
 
+  // planIdが確定したらFirestoreからロード（localStorageからの移行も処理）
   useEffect(() => {
-    setPlan(loadTravelPlan())
-    setLoaded(true)
-  }, [])
+    if (!planId) return
 
-  const updatePlan = useCallback((updater: (prev: TravelPlan) => TravelPlan) => {
-    setPlan(prev => {
-      const next = updater(prev)
-      saveTravelPlan(next)
-      return next
-    })
-  }, [])
+    async function load() {
+      const firestorePlan = await loadPlanFromFirestore(planId!)
+      if (firestorePlan) {
+        setPlan(firestorePlan)
+      } else {
+        // FirestoreにデータがなければlocalStorageを確認して移行
+        const localPlan = loadTravelPlan()
+        if (localPlan.trips.length > 0) {
+          setPlan(localPlan)
+          await savePlanToFirestore(planId!, localPlan)
+        }
+      }
+      setLoaded(true)
+    }
+
+    load()
+  }, [planId])
+
+  const updatePlan = useCallback(
+    (updater: (prev: TravelPlan) => TravelPlan) => {
+      if (!planId) return
+      setPlan(prev => {
+        const next = updater(prev)
+        savePlanToFirestore(planId, next)
+        return next
+      })
+    },
+    [planId]
+  )
 
   const addTrip = useCallback(
     (data: Omit<Trip, 'id' | 'transports' | 'stays' | 'activities'>) => {
@@ -125,10 +147,7 @@ export function useTravelPlan() {
         ...prev,
         trips: prev.trips.map(t =>
           t.id === tripId
-            ? {
-                ...t,
-                stays: t.stays.map(s => (s.id === id ? { ...s, ...updates } : s)),
-              }
+            ? { ...t, stays: t.stays.map(s => (s.id === id ? { ...s, ...updates } : s)) }
             : t
         ),
       }))

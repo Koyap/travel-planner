@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePlanId } from '../hooks/usePlanId'
 import { useTravelPlan } from '../hooks/useTravelPlan'
 import { ModalState, Trip, Transport, Stay, Activity } from '../types'
 import TripList from '../components/TripList'
@@ -13,7 +14,39 @@ import StayModal from '../components/modals/StayModal'
 import ActivityModal from '../components/modals/ActivityModal'
 import { formatShortDate } from '../utils/dateUtils'
 
+function ShareButton() {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-blue-600 bg-gray-100 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+      title="このURLを共有すると他のデバイスでも同じデータにアクセスできます"
+    >
+      {copied ? (
+        <>
+          <span>✓</span>
+          <span className="text-green-600 font-medium">コピーしました</span>
+        </>
+      ) : (
+        <>
+          <span>🔗</span>
+          <span>URLをコピー</span>
+        </>
+      )}
+    </button>
+  )
+}
+
 export default function Page() {
+  const planId = usePlanId()
   const {
     plan,
     loaded,
@@ -29,7 +62,7 @@ export default function Page() {
     addActivity,
     updateActivity,
     deleteActivity,
-  } = useTravelPlan()
+  } = useTravelPlan(planId)
 
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null)
   const [modal, setModal] = useState<ModalState>({ type: 'none' })
@@ -73,10 +106,13 @@ export default function Page() {
     }
   }
 
-  if (!loaded) {
+  if (!planId || !loaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-400 text-sm">読み込み中...</div>
+        <div className="text-center text-gray-400">
+          <div className="text-4xl mb-3">✈️</div>
+          <div className="text-sm">読み込み中...</div>
+        </div>
       </div>
     )
   }
@@ -90,31 +126,32 @@ export default function Page() {
             <>
               <button
                 onClick={() => setSelectedTripId(null)}
-                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100"
+                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded-lg hover:bg-gray-100 shrink-0"
               >
                 ← 戻る
               </button>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h1 className="font-bold text-base text-gray-800 truncate">{selectedTrip.title}</h1>
                 <p className="text-xs text-gray-400">
                   {formatShortDate(selectedTrip.startDate)} 〜{' '}
                   {formatShortDate(selectedTrip.endDate)}
                 </p>
               </div>
-              <div className="ml-auto">
-                <button
-                  onClick={() => setModal({ type: 'trip', data: selectedTrip })}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  編集
-                </button>
-              </div>
+              <button
+                onClick={() => setModal({ type: 'trip', data: selectedTrip })}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors shrink-0"
+              >
+                編集
+              </button>
             </>
           ) : (
-            <h1 className="font-bold text-xl text-gray-800 flex items-center gap-2">
-              <span>✈️</span>
-              <span>旅程管理</span>
-            </h1>
+            <>
+              <h1 className="font-bold text-xl text-gray-800 flex items-center gap-2 flex-1">
+                <span>✈️</span>
+                <span>旅程管理</span>
+              </h1>
+              <ShareButton />
+            </>
           )}
         </div>
       </header>
