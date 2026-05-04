@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "powershell -File deploy.ps1"
   },
   "dependencies": {
     "firebase": "^12.12.1",
